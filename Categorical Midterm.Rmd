@@ -7,3 +7,11 @@ date: "2026-10-09"
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+Reading in the data
+
+```{r}
+library(readr)
+Stops <- read_csv("CT_prediction_set.csv")
+head(Stops)
+```
