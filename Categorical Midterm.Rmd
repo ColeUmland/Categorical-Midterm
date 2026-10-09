@@ -1,0 +1,9 @@
+---
+title: "Categorical Midterm"
+output: html_document
+date: "2026-10-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
