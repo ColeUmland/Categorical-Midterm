@@ -113,5 +113,5 @@ FGL_counts <- Stops %>%
 print(FGL_counts)
 
 Stops <- Stops %>%
-  select(-is_arrested)
+  select(-is_arrested, -fine_grained_location)
 ```
