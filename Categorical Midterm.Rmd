@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction
 
-The CT_prediction_set data set contains data about Conneticut State Police traffic stops. The data ranges from October 2013 to March 2015 and contains roughly 270,000 rows of traffic stops. The data contains 22 variables. The purpose of this project is to determine the outcome of a traffic stop based on the predictor variables. In this RMD, the beginning code cleans the data by removing redundant, uni-variate, and unhelpful predictors. The next two chunks of code address missing variables and data leakage. The following section of code looks into relationships between predictors. This section uses the cleaned data to look at the relationships because in the original data there are a handful of repeat predictors that are almost identical. The final code chunk creates graphs to explore predictors and their responses.
+The CT_prediction_set data set contains data about Conneticut State Police traffic stops. The data ranges from October 2013 to March 2015 and contains roughly 270,000 rows of traffic stops. The data contains 24 variables. The purpose of this project is to determine the outcome of a traffic stop based on the predictor variables. In this RMD, the beginning code cleans the data by removing redundant, uni-variate, and unhelpful predictors. The next two chunks of code address missing variables and data leakage. The following section of code looks into relationships between predictors. This section uses the cleaned data to look at the relationships because in the original data there are a handful of repeat predictors that are almost identical. The final code chunk creates graphs to explore predictors and their responses.
 
 The goal of this project is to build a logistic regression model to predict whether or not a contraband is found. This project will also discuss racial discrimination using the "outcome test." If officers do not discriminate the rate at which they find drugs should be the same across racial groups. If officers unfairly target a racial group for searches, they may conduct more searches of drivers in that group without finding any drugs. This means certain racial groups may have a lower proportion of being searched and the cops actually finding contraband.
 
@@ -18,14 +18,14 @@ The goal of this project is to build a logistic regression model to predict whet
 
 ```{r}
 library(readr)
-Stops <- read_csv("CT_prediction_set.csv")
+Stops <- read_csv("CT_Stops.csv")
 ```
 
 # 3. Exploratory Data Analysis
 
 #### Removing Redundant, Uni-variate, and Unhelpful Predictors
 
-There are 50,000 observations and 22 predictor variables in the data set. We will start by removing `id` , `police department`, and `state` as predictors. Every stop is made by the State Police in Conneticut and stop id is essentially a row number. At a first glance, it seems `driver_age_raw` and `driver_age` are the same, so we will join these two columns. And since `driver_age_raw` has no missing values, we will keep `driver_age_raw`. The same can be said for `driver_race_raw` v. `driver_race`, `violation_raw` v. `violation`, `search_type_raw` v. `search_type`, and `county_name` v. `county_fips`. In the latest case, \`county_fips\` is just a numeric id for each county.
+There are 50,000 observations and 22 predictor variables in the data set. We will start by removing `id` , `police department`, and `state` as predictors. Every stop is made by the State Police in Conneticut and stop id is essentially a row number. At a first glance, it seems `driver_age_raw` and `driver_age` are the same, so we will join these two columns. And since `driver_age_raw` has no missing values, we will keep `driver_age_raw`. The same can be said for `driver_race_raw` v. `driver_race`, `violation_raw` v. `violation`, `search_type_raw` v. `search_type`, and `county_name` v. `county_fips`. \`county_fips\` is just a numeric id for each county. In the latest case, stop_outcome and stop_duration would leak data because they are not known until after the stop has been conducted.
 
 ```{r, warning = FALSE, echo = FALSE}
 # Using library dplyr to append
@@ -35,9 +35,9 @@ library(dplyr)
 COL_NA <- colSums(is.na(Stops))
 print(COL_NA)
 
-# Removing the Redundant, Uni-variate, and Unhelpful Predictor
+# Removing the Redundant, Uni-variate, Unhelpful Predictor, and Predictors that leak data
 Stops <- Stops %>%
-  select(-id, -state, -police_department, -driver_age, -driver_race, -violation, -search_type, -county_fips)
+  select(-id, -state, -police_department, -driver_age, -driver_race, -violation, -search_type, -county_fips, -stop_outcome, -stop_duration)
 ```
 
 #### Missing Variables
@@ -127,29 +127,39 @@ To explore relationships among predictors, I created contingency tables and perf
 
 ```{r, echo = FALSE}
 library(dplyr)
-cat_data <- Stops %>%
-  select(-stop_outcome) #Removed outcome because that is what we want to predict
-#Create empty results table
+library(lubridate)
+
+Stops <- Stops %>%
+  mutate(
+    #Bin time
+    time_bin = cut(
+      hour(stop_time),
+      breaks = seq(0, 24, by = 4),
+      labels = c("12AM-4AM", "4AM-8AM", "8AM-12PM",
+                 "12PM-4PM", "4PM-8PM", "8PM-12AM"),
+      right = FALSE
+    ),
+
+    #Bin date into month
+    month_bin = month(stop_date, label = TRUE, abbr = FALSE)
+  ) %>%
+  select(-stop_time, -stop_date)
+
 results <- data.frame()
 #Compare every pair of predictors 
-for (i in 1:(ncol(cat_data) - 1)) {
-  for (j in (i + 1):ncol(cat_data)) {
+for (i in 1:(ncol(Stops) - 1)) {
+  for (j in (i + 1):ncol(Stops)) {
 
     #Create contingency table
-    tbl <- table(cat_data[[i]], cat_data[[j]])
-
-    #Skip tables with fewer than 2 rows or columns
-    if (nrow(tbl) < 2 || ncol(tbl) < 2) {
-      next
-    }
+    tbl <- table(Stops[[i]], Stops[[j]])
 
     #Chi-square test of independence
     test <- suppressWarnings(chisq.test(tbl))
 
-    #Add results to empty results table
+    #Add results to results table
     results <- rbind(results, data.frame(
-      Predictor_1 = names(cat_data)[i],
-      Predictor_2 = names(cat_data)[j],
+      Predictor_1 = names(Stops)[i],
+      Predictor_2 = names(Stops)[j],
       Chi_Square = as.numeric(test$statistic),
       P_Value = test$p.value
     ))
@@ -159,9 +169,57 @@ for (i in 1:(ncol(cat_data) - 1)) {
 #Display final table
 print(results, row.names = FALSE)
 
-#Contingency table for race and search conducted
+#Conditional counts
 table(Stops$driver_race_raw, Stops$search_conducted)
-
+table(Stops$driver_race_raw, Stops$contraband_found)
 #Conditional proportions (row percentages)
 prop.table(table(Stops$driver_race_raw, Stops$search_conducted), margin = 1)
+prop.table(table(Stops$driver_race_raw, Stops$contraband_found), margin = 1)
 ```
+
+# Graphs of Race, Searches, and Contraband (looking into association)
+
+The first graph shows the probability of a search being conducted based on the driver's race. Black drivers had the highest probability of being searched, followed by Hispanic drivers. White drivers were in the middle for search rate, while Native American and Asian drivers had the lowest search rates. Black drivers were approximately 2.5 times as likely to be searched as White drivers. These differences suggest that there is an association between driver race and whether a search was conducted, which is supported by the chi-square test of independence having a p-value below 0.05.
+
+The second graph shows the probability of contraband being found during a traffic stop based on the driver's race. Hispanic drivers had the highest probability of contraband being found, followed by Black drivers. White drivers had a probability in the middle (about half of what Hispanic and Black drivers had), while Asian drivers had an even lower probability. No contraband was recorded for Native American drivers in the dataset. These results suggest that the probability of contraband being found varies depending on driver race. This relationship is also supported by the chi-square test of independence, which produced a p-value below 0.05.
+
+When comparing the two graphs, Black and Hispanic drivers had the highest search rates and the highest overall contraband=TRUE rates. However, the probability of contraband being found was much lower than the probability of a search being conducted for every racial group, which means most stops don't result in contraband being found.
+
+```{r, echo = FALSE}
+library(ggplot2)
+#Calculate conditional proportions
+search_rates <- Stops %>%
+  group_by(driver_race_raw) %>%
+  summarise(
+    search_rate = mean(search_conducted, na.rm = TRUE) * 100
+  )
+contraband_rates <- Stops %>%
+  group_by(driver_race_raw) %>%
+  summarise(
+    contraband_rate = mean(contraband_found, na.rm = TRUE) * 100
+  )
+
+#Create bar graph
+ggplot(search_rates, aes(x = driver_race_raw, y = search_rate)) +
+  geom_col(fill = "blue") +
+  labs(
+    title = "Probability of a Search Given Driver Race",
+    x = "Driver Race",
+    y = "Search Rate (%)"
+  ) +
+  theme_minimal()
+ggplot(contraband_rates, aes(x = driver_race_raw, y = contraband_rate)) +
+  geom_col(fill = "blue") +
+  labs(
+    title = "Probability of Contraband Found Given Driver Race",
+    x = "Driver Race",
+    y = "Contraband Found (%)"
+  ) +
+  theme_minimal()
+```
+
+# Additional Graphs
+Jadyn put your graphs here and discuss the associations found.
+
+
+
