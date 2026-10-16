@@ -8,19 +8,24 @@ date: "2026-10-09"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Introduction
+
+The CT_prediction_set data set contains data about Conneticut State Police traffic stops. The data ranges from October 2013 to March 2015 and contains roughly 270,000 rows of traffic stops. The data contains 22 variables. The purpose of this project is to determine the outcome of a traffic stop based on the predictor variables. In this RMD, the beginning code cleans the data by removing redundant, uni-variate, and unhelpful predictors. The next two chunks of code address missing variables and data leakage. The following section of code looks into relationships between predictors. This section uses the cleaned data to look at the relationships because in the original data there are a handful of repeat predictors that are almost identical. The final code chunk creates graphs to explore predictors and their responses.
+
+The goal of this project is to build a logistic regression model to predict whether or not a contraband is found. This project will also discuss racial discrimination using the "outcome test." If officers do not discriminate the rate at which they find drugs should be the same across racial groups. If officers unfairly target a racial group for searches, they may conduct more searches of drivers in that group without finding any drugs. This means certain racial groups may have a lower proportion of being searched and the cops actually finding contraband.
+
 # Reading in the Data
 
 ```{r}
 library(readr)
 Stops <- read_csv("CT_prediction_set.csv")
-head(Stops)
 ```
 
 # 3. Exploratory Data Analysis
 
 #### Removing Redundant, Uni-variate, and Unhelpful Predictors
 
-There are 50,000 observations and 22 predictor variables in the data set. We will start by removing `id` , `police department`, and `state` as predictors. Every stop is made by the State Police in Connecticutm and stop id is essentially a row number. At a first glance, it seems `driver_age_raw` and `driver_age` are the same, so we will join these two columns. And since `driver_age_raw` has no missing values, we will keep `driver_age_raw`. The same can be said for `driver_race_raw` v. `driver_race`, `violation_raw` v. `violation`, `search_type_raw` v. `search_type`, and `county_name` v. `county_fips`. In the latest case, \`county_fips\` is just a numeric id for each county.
+There are 50,000 observations and 22 predictor variables in the data set. We will start by removing `id` , `police department`, and `state` as predictors. Every stop is made by the State Police in Conneticut and stop id is essentially a row number. At a first glance, it seems `driver_age_raw` and `driver_age` are the same, so we will join these two columns. And since `driver_age_raw` has no missing values, we will keep `driver_age_raw`. The same can be said for `driver_race_raw` v. `driver_race`, `violation_raw` v. `violation`, `search_type_raw` v. `search_type`, and `county_name` v. `county_fips`. In the latest case, \`county_fips\` is just a numeric id for each county.
 
 ```{r, warning = FALSE, echo = FALSE}
 # Using library dplyr to append
@@ -37,9 +42,9 @@ Stops <- Stops %>%
 
 #### Missing Variables
 
--   `stop_time` Since we have a handful of missing values in the `stop_time` predictor, we will impute these. We will take each observation without a `stop_time` value, and look at it's `stop_date` . We will then take the mean `stop_time` from each date and impute any missing values by the mean `stop_time` on that date.
+- `stop_time` Since we have a handful of missing values in the `stop_time` predictor, we will impute these. We will take each observation without a `stop_time` value, and look at it's `stop_date` . We will then take the mean `stop_time` from each date and impute any missing values by the mean `stop_time` on that date.
 
--   `search_type_raw` Over 98% of our observations in `search_type_raw` are NA. This is because over 98% of our stops didn't result in a search. So, it is a matter, if adding "none" as a value instead of NA will tell a better story here, or, does `search_conducted` as a variable already do the job. Because 98% of our observations don't have a search to go with them, we will append this row as well.
+- `search_type_raw` Over 98% of our observations in `search_type_raw` are NA. This is because over 98% of our stops didn't result in a search. So, it is a matter, if adding "none" as a value instead of NA will tell a better story here, or, does `search_conducted` as a variable already do the job. Because 98% of our observations don't have a search to go with them, we will append this row as well.
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE}
 library(dplyr)
@@ -87,15 +92,15 @@ Stops <- Stops %>%
 
 #### Numeric -\> Categorical & Two Unique Instances
 
--   `officer_id` is currently a numeric predictor. A model might take a higher `officer_id` as having a greater numeric value as a lower `officer_id`. So, we will convert `officer_id` to a factor.
+- `officer_id` is currently a numeric predictor. A model might take a higher `officer_id` as having a greater numeric value as a lower `officer_id`. So, we will convert `officer_id` to a factor.
 
 <!-- -->
 
--   `fine_grained_location` seems to be an instance where the location is different for every stop. We find that we have over 25,000 different exact locations for `fine_grained_location` and the highest count that isn't a missing value or 'same' is 125, or 2.5% of our observations If this is the case, we will remove it as a predictor as well, since se walready have a city and county location. Keeping it would add multicolinearity and make our data sparse in high dimensional space, without giving us predictive power.
+- `fine_grained_location` seems to be an instance where the location is different for every stop. We find that we have over 25,000 different exact locations for `fine_grained_location` and the highest count that isn't a missing value or 'same' is 125, or 2.5% of our observations If this is the case, we will remove it as a predictor as well, since se walready have a city and county location. Keeping it would add multicolinearity and make our data sparse in high dimensional space, without giving us predictive power.
 
-    #### Leakage
+  #### Leakage
 
-    -   `is_arrested` as a predictor shares information that is already in our response variable. This is an instance of data leakage. If we use `is_arrested` , information we would only know after the stop, as a predictor, our model will overperform. Thus, we must handle `is_arrested` by removing it from our model.
+  - `is_arrested` as a predictor shares information that is already in our response variable. This is an instance of data leakage. If we use `is_arrested` , information we would only know after the stop, as a predictor, our model will overperform. Thus, we must handle `is_arrested` by removing it from our model.
 
 ```{r, echo = FALSE}
 
@@ -114,4 +119,49 @@ print(FGL_counts)
 
 Stops <- Stops %>%
   select(-is_arrested, -fine_grained_location)
+```
+
+# Correlation of Predictors
+
+To explore relationships among predictors, I created contingency tables and performed chi-square tests of independence for each pair of predictors. The for loop creates a two-way contingency table for each pair pf predictors. These tests helped identify which predictors showed statistically significant associations. All predictor pairs had p-values below 0.05, which suggests that the predictors left after cleaning are associated with one another, which would be expected because the predictors will hopefully correlate to show what the outcome of a traffic stop is.
+
+```{r, echo = FALSE}
+library(dplyr)
+cat_data <- Stops %>%
+  select(-stop_outcome) #Removed outcome because that is what we want to predict
+#Create empty results table
+results <- data.frame()
+#Compare every pair of predictors 
+for (i in 1:(ncol(cat_data) - 1)) {
+  for (j in (i + 1):ncol(cat_data)) {
+
+    #Create contingency table
+    tbl <- table(cat_data[[i]], cat_data[[j]])
+
+    #Skip tables with fewer than 2 rows or columns
+    if (nrow(tbl) < 2 || ncol(tbl) < 2) {
+      next
+    }
+
+    #Chi-square test of independence
+    test <- suppressWarnings(chisq.test(tbl))
+
+    #Add results to empty results table
+    results <- rbind(results, data.frame(
+      Predictor_1 = names(cat_data)[i],
+      Predictor_2 = names(cat_data)[j],
+      Chi_Square = as.numeric(test$statistic),
+      P_Value = test$p.value
+    ))
+  }
+}
+
+#Display final table
+print(results, row.names = FALSE)
+
+#Contingency table for race and search conducted
+table(Stops$driver_race_raw, Stops$search_conducted)
+
+#Conditional proportions (row percentages)
+prop.table(table(Stops$driver_race_raw, Stops$search_conducted), margin = 1)
 ```
