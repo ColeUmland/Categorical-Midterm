@@ -16,7 +16,7 @@ The goal of this project is to build a logistic regression model to predict whet
 
 # Reading in the Data
 
-```{r}
+```{r, warning = FALSE, message=FALSE}
 library(readr)
 Stops <- read_csv("CT_Stops.csv")
 ```
@@ -25,7 +25,7 @@ Stops <- read_csv("CT_Stops.csv")
 
 #### Removing Redundant, Uni-variate, and Unhelpful Predictors
 
-There are 50,000 observations and 22 predictor variables in the data set. We will start by removing `id` , `police department`, and `state` as predictors. Every stop is made by the State Police in Conneticut and stop id is essentially a row number. At a first glance, it seems `driver_age_raw` and `driver_age` are the same, so we will join these two columns. And since `driver_age_raw` has no missing values, we will keep `driver_age_raw`. The same can be said for `driver_race_raw` v. `driver_race`, `violation_raw` v. `violation`, `search_type_raw` v. `search_type`, and `county_name` v. `county_fips`. \`county_fips\` is just a numeric id for each county. In the latest case, stop_outcome and stop_duration would leak data because they are not known until after the stop has been conducted.
+There are 50,000 observations and 22 predictor variables in the data set. We will start by removing `id` , `police department`, and `state` as predictors. Every stop is made by the State Police in Conneticut and stop id is essentially a row number. At a first glance, it seems `driver_age_raw` and `driver_age` are the same, so we will join these two columns. And since `driver_age_raw` has no missing values, we will keep `driver_age_raw`. The same can be said for `driver_race_raw` v. `driver_race`, `violation_raw` v. `violation`, `search_type_raw` v. `search_type`, and `county_name` v. `county_fips`. `county_fips` is just a numeric id for each county.
 
 ```{r, warning = FALSE, echo = FALSE}
 # Using library dplyr to append
@@ -37,14 +37,14 @@ print(COL_NA)
 
 # Removing the Redundant, Uni-variate, Unhelpful Predictor, and Predictors that leak data
 Stops <- Stops %>%
-  select(-id, -state, -police_department, -driver_age, -driver_race, -violation, -search_type, -county_fips, -stop_outcome, -stop_duration)
+  select(-id, -state, -police_department, -driver_age, -driver_race, -violation, -search_type, -county_fips)
 ```
 
 #### Missing Variables
 
-- `stop_time` Since we have a handful of missing values in the `stop_time` predictor, we will impute these. We will take each observation without a `stop_time` value, and look at it's `stop_date` . We will then take the mean `stop_time` from each date and impute any missing values by the mean `stop_time` on that date.
+-   `stop_time` Since we have a handful of missing values in the `stop_time` predictor, we will impute these. We will take each observation without a `stop_time` value, and look at it's `stop_date` . We will then take the mean `stop_time` from each date and impute any missing values by the mean `stop_time` on that date.
 
-- `search_type_raw` Over 98% of our observations in `search_type_raw` are NA. This is because over 98% of our stops didn't result in a search. So, it is a matter, if adding "none" as a value instead of NA will tell a better story here, or, does `search_conducted` as a variable already do the job. Because 98% of our observations don't have a search to go with them, we will append this row as well.
+-   `search_type_raw` Over 98% of our observations in `search_type_raw` are NA. This is because over 98% of our stops didn't result in a search. So, it is a matter, if adding "none" as a value instead of NA will tell a better story here, or, does `search_conducted` as a variable already do the job. Because 98% of our observations don't have a search to go with them, we will append this row as well.
 
 ```{r, warning = FALSE, message = FALSE, echo = FALSE}
 library(dplyr)
@@ -92,15 +92,14 @@ Stops <- Stops %>%
 
 #### Numeric -\> Categorical & Two Unique Instances
 
-- `officer_id` is currently a numeric predictor. A model might take a higher `officer_id` as having a greater numeric value as a lower `officer_id`. So, we will convert `officer_id` to a factor.
+-   `officer_id` is currently a numeric predictor. A model might take a higher `officer_id` as having a greater numeric value as a lower `officer_id`. So, we will convert `officer_id` to a factor.
 
-<!-- -->
+-   `fine_grained_location` seems to be an instance where the location is different for every stop. We find that we have over 25,000 different exact locations for `fine_grained_location` and the highest count that isn't a missing value or 'same' is 125, or 2.5% of our observations If this is the case, we will remove it as a predictor as well, since se walready have a city and county location. Keeping it would add multicolinearity and make our data sparse in high dimensional space, without giving us predictive power.
 
-- `fine_grained_location` seems to be an instance where the location is different for every stop. We find that we have over 25,000 different exact locations for `fine_grained_location` and the highest count that isn't a missing value or 'same' is 125, or 2.5% of our observations If this is the case, we will remove it as a predictor as well, since se walready have a city and county location. Keeping it would add multicolinearity and make our data sparse in high dimensional space, without giving us predictive power.
+    #### Leakage
 
-  #### Leakage
-
-  - `is_arrested` as a predictor shares information that is already in our response variable. This is an instance of data leakage. If we use `is_arrested` , information we would only know after the stop, as a predictor, our model will overperform. Thus, we must handle `is_arrested` by removing it from our model.
+    -   `is_arrested` as a predictor shares information that is already in our response variable. This is an instance of data leakage. If we use `is_arrested` , information we would only know after the stop, as a predictor, our model will overperform. Thus, we must handle `is_arrested` by removing it from our model.
+    -    In the latest case, `stop_outcome` and `stop_duration` would leak data because they are not known until after the stop has been conducted.
 
 ```{r, echo = FALSE}
 
@@ -118,7 +117,7 @@ FGL_counts <- Stops %>%
 print(FGL_counts)
 
 Stops <- Stops %>%
-  select(-is_arrested, -fine_grained_location)
+  select(-is_arrested, -fine_grained_location, -stop_outcome, -stop_duration)
 ```
 
 # Correlation of Predictors
@@ -219,7 +218,5 @@ ggplot(contraband_rates, aes(x = driver_race_raw, y = contraband_rate)) +
 ```
 
 # Additional Graphs
+
 Jadyn put your graphs here and discuss the associations found.
-
-
-
