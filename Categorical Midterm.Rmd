@@ -217,6 +217,89 @@ ggplot(contraband_rates, aes(x = driver_race_raw, y = contraband_rate)) +
   theme_minimal()
 ```
 
-# Additional Graphs
+# Testing Predictors Using Bootstrap
 
+The bootstrap identifies which predictors are most commonly kept when predicting whether or not contraband is found. This bootstrap is designed to identify statistically significant predictors in each sample and exclude predictors that are not statistically significant. The bootstrap is run 20 times, and the proportion of times each predictor is kept is recorded. All predictors other than county_name are kept at least once. This suggests that county_name may not be a useful predictor and could be considered for removal to reduce unnecessary noise in the model. It is important to note that the bootstrap does not necessarily identify which predictors have the most predictive power, but rather which predictors are consistently found to be statistically significant.
+
+```{r}
+#Prepare data
+model_data <- Stops %>%
+  filter(search_conducted == TRUE) %>%
+  select(-search_conducted) %>%
+  mutate(
+    contraband_found = as.integer(
+      as.character(contraband_found) == "TRUE"
+    ),
+    across(where(is.character), as.factor)
+  ) %>%
+  na.omit()
+
+#Use the same predictors in every sample
+predictors <- names(model_data)[
+  names(model_data) != "contraband_found"
+]
+
+#Empty list to store results
+kept_rows <- list()
+
+for (s in 1:20) {
+
+  set.seed(s)
+
+  #Bootstrap sample
+  sample_rows <- sample(
+    nrow(model_data),
+    size = min(1000, nrow(model_data)),
+    replace = TRUE
+  )
+
+  sample_data <- model_data[sample_rows, ]
+
+  #Fit logistic regression
+  fit <- suppressWarnings(
+      glm(
+      contraband_found ~ .,
+      data = sample_data,
+      family = binomial
+    )
+  )
+  #Extract p-values
+  p_values <- summary(fit)$coefficients[-1, 4]
+
+  #Start with all predictors marked FALSE
+  kept <- setNames(rep(FALSE, length(predictors)), predictors)
+
+  #Check whether any coefficient for each predictor has a p-value below 0.05
+  for (p in predictors) {
+    matching <- startsWith(names(p_values), p)
+
+    if (any(matching)) {
+      kept[p] <- any(
+        p_values[matching] < 0.05,
+        na.rm = TRUE
+      )
+    }
+  }
+
+  kept_rows[[s]] <- kept
+}
+
+#Combine results
+kept <- as.data.frame(do.call(rbind, kept_rows))
+
+#Calculate fraction kept
+selection_table <- data.frame(
+  Predictor = names(kept),
+  Fraction_Kept = colMeans(kept)
+) %>%
+  arrange(desc(Fraction_Kept))
+
+print(selection_table)
+```
+
+
+# Additional Graphs
 Jadyn put your graphs here and discuss the associations found.
+
+
+
