@@ -318,10 +318,10 @@ gender_search <- Stops %>%
 ggplot(gender_search, aes(x = driver_gender, y = search_rate)) +
   geom_col() +
   labs(title = "Search Rate by Driver Gender", x = "Driver Gender",
-    y = "% of Stops Resulting in a Search") +
+       y = "Stops Resulting in a Search (%)") +
   theme_minimal()
 
-# Calculate the search rate for the times based on the 4 hour bin intervals created above
+# Calculating the search rate for the times based on the 4 hour bin intervals created above
 time_search <- Stops %>%
   filter(!is.na(time_bin), !is.na(search_conducted)) %>%
   group_by(time_bin) %>%
@@ -331,8 +331,22 @@ time_search <- Stops %>%
 ggplot(time_search, aes(x = time_bin, y = search_rate)) +
   geom_col() +
   labs(title = "Search Rate by Time of Day", x = "Time of Day",
-    y = "Stops Resulting in a Search (%)") +
+       y = "Stops Resulting in a Search (%)") +
   theme_minimal() 
+
+# Calculating the search rate for each month based month bins created in above code
+month_search <- Stops %>%
+  filter(!is.na(month_bin), !is.na(search_conducted)) %>%
+  group_by(month_bin) %>%
+  summarise(search_rate = mean(search_conducted) * 100, .groups = "drop")
+
+# Creating a bar chart for the search rates for each month
+ggplot(month_search, aes(x = month_bin, y = search_rate)) +
+  geom_col() +
+  labs(title = "Search Rate by Month", x = "Month", 
+       y = "Stops Resulting in a Search (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ```
 
