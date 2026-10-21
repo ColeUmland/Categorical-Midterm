@@ -299,12 +299,28 @@ print(selection_table)
 
 
 # Additional Graphs
-Jadyn put your graphs here and discuss the associations found.
 
+```{r}
+# Overlaid density graph to compare the age distributions of drivers who were and weren't searched.
 ggplot(Stops, aes(x = driver_age_raw, fill = factor(search_conducted))) +
   geom_density(alpha = 0.4, na.rm = TRUE) +
   labs(title = "Driver Age Distributions by Search Outcome",
     x = "Driver Age",y = "Density", fill = "Search Conducted") +
   theme_minimal()
 
+# Calculate the search rate for each driver gender
+gender_search <- Stops %>%
+  filter(!is.na(driver_gender), !is.na(search_conducted)) %>%
+  group_by(driver_gender) %>%
+  summarise(search_rate = mean(search_conducted) * 100, .groups = "drop")
+
+# Creating a bar chart for the search rate of each driver gender
+ggplot(gender_search, aes(x = driver_gender, y = search_rate)) +
+  geom_col() +
+  labs(title = "Search Rate by Driver Gender", x = "Driver Gender",
+    y = "% of Stops Resulting in a Search") +
+  theme_minimal()
+
+
+```
 
