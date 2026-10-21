@@ -301,5 +301,10 @@ print(selection_table)
 # Additional Graphs
 Jadyn put your graphs here and discuss the associations found.
 
+ggplot(Stops, aes(x = driver_age_raw, fill = factor(search_conducted))) +
+  geom_density(alpha = 0.4, na.rm = TRUE) +
+  labs(title = "Driver Age Distributions by Search Outcome",
+    x = "Driver Age",y = "Density", fill = "Search Conducted") +
+  theme_minimal()
 
 
