@@ -301,14 +301,8 @@ print(selection_table)
 # Predictors of search outcome graphs
 
 To explore the relationships between predictors and whether a search was conducted we created graphs comparing driver age, driver gender, time of day, month, officer id, and county with search outcome.
-The density curves for driver age shows that searched drivers have a higher concentration at younger ages, while non-searched drivers have a more noticecable concentration at older ages. This suggests that driver age may be associated with whether a search was conducted.
-Driver gender also has some difference in search rate. Approximately 2.1% of stops involving a male resulted in a search, compared to the approximately 0.8% of stops involving female drivers. 
-Time of day showed that majority of stops resulting in a search took place between 12 AM and 4 AM while 4 AM to 8 AM had the lowest search rate. 
-Month had a small variation as search rates was higher during winter months.
-The largest differences came from the officer id predictor. Of the officer ids with the 15 most stops a few had higher search rates between 5% and just over 7% while most were closer to 0% and 1%.
-The top 8 counties in stops did not vary much with search rate. Middlesex county was slightly lower than the others with a search rate around 0.8% while the others were around 1.75%. 
-Overall, the graphs showed that driver age, driver gender, time of day, month, officer id, and county and show trends in predicting whether a search was conducted but some show more than others. 
-
+The density curves for driver age shows that searched drivers have a higher concentration at younger ages, while non-searched drivers have a more noticeable concentration at older ages. This suggests that driver age may be associated with whether a search was conducted. Driver gender also has some difference in search rate. Approximately 2.1% of stops involving a male resulted in a search, compared to the approximately 0.8% of stops involving female drivers. Time of day showed that majority of stops resulting in a search took place between 12 AM and 4 AM while 4 AM to 8 AM had the lowest search rate. Month had a small variation as search rates was higher during winter months. The largest differences came from the officer id predictor. Of the officer ids with the 15 most stops a few had higher search rates between 5% and just over 7% while most were closer to 0% and 1%. The top 8 counties in stops did not vary much with search rate. Middlesex county was slightly lower than the others with a search rate around 0.8% while the others were around 1.75%. 
+Overall, the graphs showed that driver age, driver gender, time of day, month, officer id, and county and show trends in predicting whether a search was conducted but some show more than others.
 
 ```{r}
 library(ggplot2)
