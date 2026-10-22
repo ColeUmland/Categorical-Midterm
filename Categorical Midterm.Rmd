@@ -219,7 +219,7 @@ ggplot(contraband_rates, aes(x = driver_race_raw, y = contraband_rate)) +
 
 # Testing Predictors Using Bootstrap
 
-The bootstrap identifies which predictors are most commonly kept when predicting whether or not contraband is found. This bootstrap is designed to identify statistically significant predictors in each sample and exclude predictors that are not statistically significant. The bootstrap is run 20 times, and the proportion of times each predictor is kept is recorded. All predictors other than county_name are kept at least once. This suggests that county_name may not be a useful predictor and could be considered for removal to reduce unnecessary noise in the model. It is important to note that the bootstrap does not necessarily identify which predictors have the most predictive power, but rather which predictors are consistently found to be statistically significant.
+The bootstrap identifies which predictors are most commonly kept when predicting whether or not contraband is found. This bootstrap is designed to identify statistically significant predictors in each sample and exclude predictors that are not statistically significant. The bootstrap is run 20 times, and the proportion of times each predictor is kept is recorded. All predictors other than county_name are kept at least once. This suggests that county_name may not be a useful predictor and could be considered for removal to reduce unnecessary noise in the model. This likely is happening because county_name is redundant with location_raw causing colinearity, so only one of these to predictors is needed in a model. It is important to note that the bootstrap does not necessarily identify which predictors have the most predictive power, but rather which predictors are consistently found to be statistically significant.
 
 ```{r}
 #Prepare data
@@ -296,7 +296,16 @@ selection_table <- data.frame(
 
 print(selection_table)
 ```
+#Comparing Predictors with Logistic Regression
 
+location_raw, officer_id, and violation_raw are dropped from this test because they have lots of categories and creating that many dummy variables is expensive and takes a long time to execute.
+
+A logistic regression model was used to examine which predictors are associated with whether contraband is found during a traffic stop. At a significance level of 0.05, driver age, time of day, and month have at least one statistically significant category. Driver age has a negative coefficient, which means that the odds of finding contraband decrease as driver age increases when holding the other predictors constant. Certain time bins and month are also statistically significant, suggesting that the likelihood of finding contraband may vary depending on when the stop occurs when holding the other predictors constant. County, driver gender, and driver race do not have any individually significant coefficients 0.05, except for Hartford County. These results suggest that driver age, time of day, and month may be most useful predictors of whether contraband is found.
+
+```{r}
+lr <- glm(contraband_found ~ . -location_raw -officer_id -violation_raw, family = binomial, data = Stops)
+summary(lr)
+```
 
 # Predictors of search outcome graphs
 
@@ -394,3 +403,6 @@ ggplot(county_search, aes(x = reorder(county_name, search_rate), y = search_rate
        y = "Stops Resulting in a Search (%)") +
   theme_minimal()
 ```
+
+
+
