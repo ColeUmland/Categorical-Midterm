@@ -301,6 +301,9 @@ print(selection_table)
 # Additional Graphs
 
 ```{r}
+library(ggplot2)
+library(dplyr)
+
 # Overlaid density graph to compare the age distributions of drivers who were and weren't searched.
 ggplot(Stops, aes(x = driver_age_raw, fill = factor(search_conducted))) +
   geom_density(alpha = 0.4, na.rm = TRUE) +
@@ -347,6 +350,28 @@ ggplot(month_search, aes(x = month_bin, y = search_rate)) +
        y = "Stops Resulting in a Search (%)") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Find the 15 officers with the most traffic stops
+top_officers <- Stops %>%
+  filter(!is.na(officer_id), !is.na(search_conducted)) %>%
+  count(officer_id, sort = TRUE) %>%
+  slice_head(n = 15) %>%
+  pull(officer_id)
+
+# Calculate search rate for each of the 15 officers
+officer_search <- Stops %>%
+  filter(officer_id %in% top_officers, !is.na(search_conducted)) %>%
+  group_by(officer_id) %>%
+  summarise(search_rate = mean(search_conducted) * 100, total_stops = n(),
+            .groups = "drop")
+
+# Create plot for search rate by officer
+ggplot(officer_search, aes(x = reorder(officer_id, search_rate), y = search_rate)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Search Rate by Officer", x = "Officer ID",
+       y = "Traffic Stops Resulting in a Search (%)") +
+  theme_minimal()
 
 ```
 
