@@ -373,5 +373,21 @@ ggplot(officer_search, aes(x = reorder(officer_id, search_rate), y = search_rate
        y = "Traffic Stops Resulting in a Search (%)") +
   theme_minimal()
 
+# Calculate the search rate for the counties with the most stops
+county_search <- Stops %>%
+  filter(!is.na(county_name), !is.na(search_conducted)) %>%
+  group_by(county_name) %>%
+  summarise(search_rate = mean(search_conducted) * 100, total_stops = n(),
+            .groups = "drop") %>%
+  filter(total_stops >= 100) %>%
+  slice_max(order_by = total_stops, n = 12)
+
+# Create plot for the search rate of the 12 counties with the most stops
+ggplot(county_search, aes(x = reorder(county_name, search_rate), y = search_rate)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Search Rate by County", x = "County",
+       y = "Stops Resulting in a Search (%)") +
+  theme_minimal()
 ```
 
