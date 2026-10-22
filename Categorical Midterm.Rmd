@@ -380,9 +380,9 @@ county_search <- Stops %>%
   summarise(search_rate = mean(search_conducted) * 100, total_stops = n(),
             .groups = "drop") %>%
   filter(total_stops >= 100) %>%
-  slice_max(order_by = total_stops, n = 12)
+  slice_max(order_by = total_stops, n = 8)
 
-# Create plot for the search rate of the 12 counties with the most stops
+# Create plot for the search rate of the 8 counties with the most stops
 ggplot(county_search, aes(x = reorder(county_name, search_rate), y = search_rate)) +
   geom_col() +
   coord_flip() +
